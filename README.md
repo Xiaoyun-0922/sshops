@@ -251,6 +251,8 @@ Remove-Item Env:SSH_SERVER_PASSWORD
 This repo includes a Codex plugin manifest at [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json).
 The plugin uses the standard plugin skill layout under [`skills/ssh-server-ops/`](./skills/ssh-server-ops/).
 
+Important: install the whole repository or plugin, not only `skills/ssh-server-ops/`. The skill depends on the toolkit scripts in the repo-root `scripts/` directory.
+
 After installing the plugin, Codex can invoke the bundled skill with prompts like:
 
 ```text
@@ -268,6 +270,8 @@ The plugin uses the toolkit in `scripts/`, so the PowerShell commands shown abov
 This repo includes a Claude plugin manifest at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json).
 
 For environments that prefer direct skill installation, the repo root also works as a standalone skill directory because it includes [SKILL.md](./SKILL.md) and the bundled helper scripts.
+
+Do not copy only `skills/ssh-server-ops/` by itself unless you also preserve the repo-root `scripts/` directory and relative layout.
 
 The practical model is:
 
