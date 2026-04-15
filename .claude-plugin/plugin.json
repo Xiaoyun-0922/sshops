@@ -1,0 +1,22 @@
+{
+  "name": "ssh-server-ops",
+  "description": "Windows-first SSH bootstrap, diagnostics, transfer fallback, and Linux or HPC remote operations toolkit.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Xiaoyun-0922",
+    "url": "https://github.com/Xiaoyun-0922/sshops"
+  },
+  "homepage": "https://github.com/Xiaoyun-0922/sshops",
+  "repository": "https://github.com/Xiaoyun-0922/sshops",
+  "license": "MIT",
+  "keywords": [
+    "ssh",
+    "windows",
+    "linux",
+    "hpc",
+    "slurm",
+    "claude-code",
+    "skills",
+    "diagnostics"
+  ]
+}

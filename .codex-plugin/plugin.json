@@ -1,0 +1,42 @@
+{
+  "name": "ssh-server-ops",
+  "version": "0.1.0",
+  "description": "Windows-first SSH bootstrap, diagnostics, transfer fallback, and Linux or HPC remote operations toolkit.",
+  "author": {
+    "name": "Xiaoyun-0922",
+    "url": "https://github.com/Xiaoyun-0922/sshops"
+  },
+  "homepage": "https://github.com/Xiaoyun-0922/sshops",
+  "repository": "https://github.com/Xiaoyun-0922/sshops",
+  "license": "MIT",
+  "keywords": [
+    "ssh",
+    "windows",
+    "linux",
+    "hpc",
+    "slurm",
+    "codex",
+    "skills",
+    "diagnostics"
+  ],
+  "skills": "./",
+  "interface": {
+    "displayName": "SSH Server Ops",
+    "shortDescription": "Bootstrap, diagnose, transfer, and operate SSH workflows from Windows to Linux or HPC targets",
+    "longDescription": "Use SSH Server Ops to diagnose SSH readiness, repair config and key selection issues, bootstrap password-to-key access, fall back to Paramiko transfers, and run remote Linux or HPC commands from a Windows workstation.",
+    "developerName": "Xiaoyun-0922",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Xiaoyun-0922/sshops",
+    "defaultPrompt": [
+      "Diagnose why SSH to this Linux host only partially works from my Windows machine.",
+      "Bootstrap key-based SSH access for this server and report the next safe action.",
+      "Run a read-only SSH diagnosis on this HPC login node and summarize the root cause."
+    ],
+    "brandColor": "#0F6CBD"
+  }
+}
