@@ -14,6 +14,8 @@ $requiredFiles = @(
     ".claude-plugin\plugin.json",
     ".claude-plugin\marketplace.json",
     "agents\openai.yaml",
+    "skills\ssh-server-ops\SKILL.md",
+    "skills\ssh-server-ops\agents\openai.yaml",
     "references\prompt-templates.md",
     "references\windows-linux-ssh-playbook.md",
     "references\hpc-slurm-playbook.md",

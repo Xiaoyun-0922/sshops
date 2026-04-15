@@ -19,7 +19,7 @@
     "skills",
     "diagnostics"
   ],
-  "skills": "./",
+  "skills": "./skills/",
   "interface": {
     "displayName": "SSH Server Ops",
     "shortDescription": "Bootstrap, diagnose, transfer, and operate SSH workflows from Windows to Linux or HPC targets",

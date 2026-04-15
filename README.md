@@ -249,6 +249,7 @@ Remove-Item Env:SSH_SERVER_PASSWORD
 ## Codex usage
 
 This repo includes a Codex plugin manifest at [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json).
+The plugin uses the standard plugin skill layout under [`skills/ssh-server-ops/`](./skills/ssh-server-ops/).
 
 After installing the plugin, Codex can invoke the bundled skill with prompts like:
 
@@ -300,6 +301,11 @@ See [SECURITY.md](./SECURITY.md).
 |-- SKILL.md
 |-- agents/
 |   `-- openai.yaml
+|-- skills/
+|   `-- ssh-server-ops/
+|       |-- SKILL.md
+|       `-- agents/
+|           `-- openai.yaml
 |-- references/
 |   |-- hpc-slurm-playbook.md
 |   |-- prompt-templates.md
