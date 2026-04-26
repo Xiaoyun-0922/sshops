@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "ssh-server-ops",
-      "description": "Windows-first SSH bootstrap, diagnostics, transfer fallback, and Linux or HPC remote operations toolkit.",
+      "description": "Cross-platform SSH bootstrap, diagnostics, transfer fallback, and Linux or HPC remote operations toolkit.",
       "version": "0.1.0",
       "source": "./",
       "author": {

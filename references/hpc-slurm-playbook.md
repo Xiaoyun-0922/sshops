@@ -2,6 +2,12 @@
 
 Use this when the SSH target is a login node, scheduler entrypoint, or managed research cluster rather than a single always-on Linux host.
 
+Examples use the cross-platform Python entrypoint. On Windows, the equivalent PowerShell entrypoint is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 <subcommand> ...
+```
+
 ## First principles
 
 - login nodes and compute nodes are different roles
@@ -13,12 +19,12 @@ Use this when the SSH target is a login node, scheduler entrypoint, or managed r
 
 From the login node, prefer:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias <alias> `
-  -Command "hostname && whoami && pwd && squeue -u $USER && sinfo -s" `
-  -Bash `
-  -BatchMode
+```bash
+python3 ./scripts/sshops.py run \
+  --alias <alias> \
+  --command 'hostname && whoami && pwd && squeue -u $USER && sinfo -s' \
+  --bash \
+  --batch-mode
 ```
 
 Useful checks:
@@ -34,45 +40,45 @@ Useful checks:
 
 Submit a job:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias <alias> `
-  -RemoteDir ~/project `
-  -Command "sbatch job.sh" `
-  -Bash `
-  -BatchMode
+```bash
+python3 ./scripts/sshops.py run \
+  --alias <alias> \
+  --remote-dir ~/project \
+  --command "sbatch job.sh" \
+  --bash \
+  --batch-mode
 ```
 
 Watch queue state:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias <alias> `
-  -Command "squeue -u $USER" `
-  -Bash `
-  -BatchMode
+```bash
+python3 ./scripts/sshops.py run \
+  --alias <alias> \
+  --command 'squeue -u $USER' \
+  --bash \
+  --batch-mode
 ```
 
 Collect logs after completion:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias <alias> `
-  -RemoteDir ~/project `
-  -Command "tail -n 200 slurm-<jobid>.out" `
-  -Bash `
-  -BatchMode
+```bash
+python3 ./scripts/sshops.py run \
+  --alias <alias> \
+  --remote-dir ~/project \
+  --command "tail -n 200 slurm-<jobid>.out" \
+  --bash \
+  --batch-mode
 ```
 
 ## Interactive jobs
 
 When the cluster requires an allocation before work can run:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias <alias> `
-  -Command "srun --pty bash -l" `
-  -Bash
+```bash
+python3 ./scripts/sshops.py run \
+  --alias <alias> \
+  --command "srun --pty bash -l" \
+  --bash
 ```
 
 Treat this as a different session class from the login node. Do not assume the compute-node shell survives after the allocation ends.

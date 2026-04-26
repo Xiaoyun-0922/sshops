@@ -1,166 +1,122 @@
 # SSH Server Ops Toolkit
 
-Windows-first SSH bootstrap, diagnostics, transfer fallback, and remote ops toolkit for Linux and HPC workflows.
+[![Validate](https://github.com/Xiaoyun-0922/sshops/actions/workflows/validate.yml/badge.svg)](https://github.com/Xiaoyun-0922/sshops/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Platforms](https://img.shields.io/badge/local-Windows%20%7C%20macOS%20%7C%20Linux-0F6CBD.svg)](#platform-support)
 
-This project is **tool-first, skill-second**:
+Cross-platform SSH diagnostics, key bootstrap, transfer fallback, and remote command tooling for Linux, POSIX, gateway, and HPC workflows.
 
-- humans can run the toolkit directly from PowerShell
-- Codex can use the bundled plugin plus skill
-- Claude Code can use the bundled plugin or the standalone skill
+`sshops` is intentionally tool-first and skill-second:
 
-The main problem it solves is the messy last mile between a Windows workstation and a real Linux or HPC target:
+- humans can run the toolkit directly
+- Codex can use the bundled plugin and skill
+- Claude Code can use the bundled plugin or standalone skill layout
 
-- `ssh` works but `scp` does not
+The practical goal is simple: make the last mile of SSH work predictable before an agent changes anything on a remote machine.
+
+## At a glance
+
+| Need | Command | Risk |
+| --- | --- | --- |
+| Diagnose local SSH, network, auth, and transfer readiness | `doctor` | Read-only |
+| Create or repair one `~/.ssh/config` host block | `configure` | Local config change |
+| Install a public key using one password-backed session | `bootstrap-key` | Remote account config change |
+| Copy files when OpenSSH transfer is unreliable | `transfer` | Local or remote file writes |
+| Run a remote command in a consistent JSON-wrapped way | `run` | Depends on command |
+
+## What it solves
+
+Common SSH failures are rarely just "SSH is broken". This toolkit separates the layers:
+
+- local client tools are missing or shadowed on PATH
+- the TCP route, VPN, firewall, or gateway is wrong
 - interactive login works but `BatchMode` key auth fails
-- `~/.ssh/config` or Windows ACLs are wrong
-- PowerShell, OpenSSH, Conda, and Python disagree about the environment
-- the target is a gateway, bastion, or Slurm login node instead of a simple single host
+- `ssh` works but `scp` or `sftp` is unreliable
+- `~/.ssh/config` points at the wrong host, key, user, or port
+- a login node, jump host, bastion, or Slurm cluster needs a different workflow from a simple server
 
-## What it provides
+## Platform support
 
-- `doctor`: read-only diagnosis with structured JSON output
-- `configure`: create or repair a host block in `~/.ssh/config`
-- `bootstrap-key`: install a public key over one password-backed session, then verify non-interactive access
-- `transfer`: Paramiko-backed upload or download fallback when OpenSSH transfer is not usable
-- `run`: standardized remote command execution through `ssh`
-- `SKILL.md`: bundled agent wrapper for Codex and Claude Code
-- `references/hpc-slurm-playbook.md`: first-pass HPC and Slurm guidance
+| Local machine | Preferred entrypoint | Notes |
+| --- | --- | --- |
+| Windows | `powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 ...` | Preserves the original Windows-first workflow and OpenSSH ACL repair. |
+| Windows | `python .\scripts\sshops.py ...` | Uses the new cross-platform Python CLI. |
+| macOS | `python3 ./scripts/sshops.py ...` | Requires OpenSSH client tools on PATH. |
+| Linux | `python3 ./scripts/sshops.py ...` | Requires OpenSSH client tools on PATH. |
+
+Remote targets are expected to be Linux, POSIX, gateway, bastion, or HPC login nodes. This is not a Windows remoting or RDP toolkit.
 
 ## Requirements
 
-- Windows with PowerShell
+Required:
+
 - OpenSSH client tools on PATH: `ssh`, `scp`, `sftp`
-- `tar`
-- optional: Conda plus `paramiko` for `bootstrap-key` and `transfer`
+- Python 3.10 or newer for the cross-platform CLI
 
-## Quick start
+Optional:
 
-### 1. Clone and validate
+- PowerShell 5.1+ on Windows, or PowerShell Core for validation
+- `tar` for tar-over-SSH sync patterns
+- Conda or another Python environment with `paramiko` for `bootstrap-key` and `transfer`
+
+## Install and validate
+
+```bash
+git clone https://github.com/Xiaoyun-0922/sshops.git
+cd sshops
+python scripts/validate-toolkit.py
+```
+
+On Windows, the original PowerShell validator is still available:
 
 ```powershell
 git clone https://github.com/Xiaoyun-0922/sshops.git
 cd sshops
-
 powershell -ExecutionPolicy Bypass -File .\scripts\validate-toolkit.ps1
 ```
 
-### 2. Optional: prepare the Python environment for password-backed flows
+## Quick start
 
-If you only want read-only diagnosis or already have working key auth, you can skip this at first.
+### 1. Diagnose without saving SSH config
 
-If you want `bootstrap-key` or `transfer`, create a Conda environment and install Paramiko:
+macOS/Linux:
 
-```powershell
-conda create -y -n sshops python=3.11
-conda run -n sshops python -m pip install paramiko
+```bash
+python3 ./scripts/sshops.py doctor \
+  --host-name login.example.edu \
+  --port 22 \
+  --user alice
 ```
 
-Then pass `-CondaEnv sshops` to `doctor`, `bootstrap-key`, and `transfer`.
-
-### 3. Run the first diagnosis without saving anything
-
-Use direct mode when you have a host, port, and username but no SSH alias yet:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 doctor `
-  -HostName <host-or-ip> `
-  -Port <port> `
-  -User <user> `
-  -CondaEnv sshops
-```
-
-Direct mode is the safest first step because it does not change local SSH config.
-
-### 4. Save the host as an SSH alias when you want a reusable entry
-
-Once the target details are known, create or repair a focused host block in `~/.ssh/config`:
-
-```powershell
-$keyPath = Join-Path $HOME ".ssh\id_ed25519_myserver"
-
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 configure `
-  -Alias myserver `
-  -HostName <host-or-ip> `
-  -Port <port> `
-  -User <user> `
-  -IdentityFile $keyPath `
-  -PreferredAuthentications publickey
-```
-
-After this, the saved alias can be used with `-Alias myserver`.
-
-### 5. Re-run diagnosis using the saved alias
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 doctor `
-  -Alias myserver `
-  -CondaEnv sshops
-```
-
-### 6. Run a remote command
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias myserver `
-  -Command "whoami && pwd" `
-  -Bash `
-  -BatchMode
-```
-
-Run from a remote project directory:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
-  -Alias myserver `
-  -RemoteDir ~/repo `
-  -Command "git status --short" `
-  -Bash `
-  -BatchMode
-```
-
-## How to configure server information
-
-The toolkit supports two styles.
-
-### Style A: direct target
-
-Use this when you do not want to save anything yet.
-
-You provide:
-
-- `-HostName`
-- `-Port`
-- `-User`
-
-Example:
+Windows:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 doctor `
   -HostName login.example.edu `
   -Port 22 `
-  -User alice `
-  -CondaEnv sshops
+  -User alice
 ```
 
-This is the best option for first-time diagnosis.
+`doctor` returns JSON with fields such as `local_tools`, `network`, `auth`, `transfer`, `python_env`, `likely_root_cause`, and `recommended_next_step`.
 
-### Style B: saved alias
+### 2. Save a reusable host alias
 
-Use this when you want a reusable host entry in `~/.ssh/config`.
+macOS/Linux:
 
-You provide:
+```bash
+python3 ./scripts/sshops.py configure \
+  --alias gpu-login \
+  --host-name login.example.edu \
+  --port 22 \
+  --user alice \
+  --identity-file ~/.ssh/id_ed25519_gpu \
+  --preferred-authentications publickey
+```
 
-- `-Alias`
-- `-HostName`
-- `-Port`
-- `-User`
-- optional: `-IdentityFile`
-- optional: `-PreferredAuthentications`
-
-Example:
+Windows:
 
 ```powershell
-$keyPath = Join-Path $HOME ".ssh\id_ed25519_gpu-login"
+$keyPath = Join-Path $HOME ".ssh\id_ed25519_gpu"
 
 powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 configure `
   -Alias gpu-login `
@@ -171,123 +127,140 @@ powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 configure `
   -PreferredAuthentications publickey
 ```
 
-After this, use:
+### 3. Re-run diagnosis by alias
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 doctor -Alias gpu-login -CondaEnv sshops
+macOS/Linux:
+
+```bash
+python3 ./scripts/sshops.py doctor --alias gpu-login
 ```
 
-## What `doctor` tells you
-
-`doctor` is the preferred first command because it is read-only and returns structured JSON.
-
-Important fields:
-
-- `local_tools`
-- `network`
-- `auth`
-- `transfer`
-- `remote_shell`
-- `python_env`
-- `likely_root_cause`
-- `recommended_next_step`
-
-This lets a human or agent tell the difference between:
-
-- local environment problems
-- network reachability problems
-- SSH key selection problems
-- missing Paramiko fallback support
-
-## Password-backed bootstrap
-
-Do not paste passwords into chat or commit them to disk.
-
-Set the password only in the local terminal session:
+Windows:
 
 ```powershell
-$env:SSH_SERVER_PASSWORD = "<your-password>"
+powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 doctor -Alias gpu-login
 ```
 
-Then run:
+### 4. Run a remote command
+
+macOS/Linux:
+
+```bash
+python3 ./scripts/sshops.py run \
+  --alias gpu-login \
+  --remote-dir ~/repo \
+  --command "git status --short" \
+  --bash \
+  --batch-mode
+```
+
+Windows:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 run `
+  -Alias gpu-login `
+  -RemoteDir ~/repo `
+  -Command "git status --short" `
+  -Bash `
+  -BatchMode
+```
+
+## Password-backed flows
+
+Do not paste passwords, tokens, private keys, or MFA codes into chat.
+
+For `bootstrap-key` or `transfer`, keep the password in a short-lived local environment variable.
+
+macOS/Linux:
+
+```bash
+export SSH_SERVER_PASSWORD="<set-locally-only>"
+python3 -m pip install paramiko
+python3 ./scripts/sshops.py bootstrap-key \
+  --host-name login.example.edu \
+  --port 22 \
+  --user alice \
+  --public-key ~/.ssh/id_ed25519_gpu.pub \
+  --private-key ~/.ssh/id_ed25519_gpu
+unset SSH_SERVER_PASSWORD
+```
+
+Windows with Conda:
+
+```powershell
+conda create -y -n sshops python=3.11
+conda run -n sshops python -m pip install paramiko
+
+$env:SSH_SERVER_PASSWORD = "<set-locally-only>"
 powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 bootstrap-key `
-  -HostName <host-or-ip> `
-  -Port <port> `
-  -User <user> `
-  -PublicKey "$HOME\.ssh\id_ed25519_myserver.pub" `
-  -PrivateKey "$HOME\.ssh\id_ed25519_myserver" `
+  -HostName login.example.edu `
+  -Port 22 `
+  -User alice `
+  -PublicKey "$HOME\.ssh\id_ed25519_gpu.pub" `
+  -PrivateKey "$HOME\.ssh\id_ed25519_gpu" `
   -CondaEnv sshops
-```
-
-Clear the environment variable after use:
-
-```powershell
 Remove-Item Env:SSH_SERVER_PASSWORD
 ```
 
 ## Transfer fallback
 
-When diagnosis shows OpenSSH transfer is not the reliable path, use the Paramiko-backed fallback:
+Use direct `scp` or `sftp` when OpenSSH transfer is healthy. Use `transfer` when password-backed Paramiko SFTP is the more reliable fallback.
+
+macOS/Linux:
+
+```bash
+export SSH_SERVER_PASSWORD="<set-locally-only>"
+python3 ./scripts/sshops.py transfer \
+  --host-name login.example.edu \
+  --port 22 \
+  --user alice \
+  --direction download \
+  --remote-path /path/on/remote \
+  --local-path ./local-copy
+unset SSH_SERVER_PASSWORD
+```
+
+Windows:
 
 ```powershell
-$env:SSH_SERVER_PASSWORD = "<your-password>"
-
+$env:SSH_SERVER_PASSWORD = "<set-locally-only>"
 powershell -ExecutionPolicy Bypass -File .\scripts\sshops.ps1 transfer `
-  -HostName <host-or-ip> `
-  -Port <port> `
-  -User <user> `
+  -HostName login.example.edu `
+  -Port 22 `
+  -User alice `
   -Direction download `
   -RemotePath /path/on/remote `
   -LocalPath .\local-copy `
   -CondaEnv sshops
-
 Remove-Item Env:SSH_SERVER_PASSWORD
 ```
 
-## Codex usage
+## Agent usage
 
-This repo includes a Codex plugin manifest at [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json).
-The plugin uses the standard plugin skill layout under [`skills/ssh-server-ops/`](./skills/ssh-server-ops/).
+This repository includes:
 
-Important: install the whole repository or plugin, not only `skills/ssh-server-ops/`. The skill depends on the toolkit scripts in the repo-root `scripts/` directory.
+- Codex plugin metadata at [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json)
+- Claude plugin metadata at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json)
+- Standard skill layout at [`skills/ssh-server-ops/`](./skills/ssh-server-ops/)
+- A root-level standalone [`SKILL.md`](./SKILL.md)
 
-After installing the plugin, Codex can invoke the bundled skill with prompts like:
+Install the whole repository or plugin, not only `skills/ssh-server-ops/`. The skill depends on the repo-root `scripts/` and `references/` directories.
+
+Example prompt:
 
 ```text
-Use $ssh-server-ops to diagnose SSH access to my Linux host from this Windows machine.
+Use $ssh-server-ops to run a read-only diagnosis on my HPC login node and recommend the next safe action.
 ```
-
-```text
-Use $ssh-server-ops to bootstrap key-based SSH access for this server and report the next safe action.
-```
-
-The plugin uses the toolkit in `scripts/`, so the PowerShell commands shown above remain the canonical behavior.
-
-## Claude Code usage
-
-This repo includes a Claude plugin manifest at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json).
-
-For environments that prefer direct skill installation, the repo root also works as a standalone skill directory because it includes [SKILL.md](./SKILL.md) and the bundled helper scripts.
-
-Do not copy only `skills/ssh-server-ops/` by itself unless you also preserve the repo-root `scripts/` directory and relative layout.
-
-The practical model is:
-
-- plugin install for Codex or Claude environments that prefer plugins
-- direct skill install when Claude Code wants a skill folder
-- direct PowerShell usage for humans and shell automation
 
 ## Security model
 
-- Do not put passwords, tokens, private keys, or MFA codes into chat.
-- Keep password-based bootstrap local to the terminal session only, usually in `SSH_SERVER_PASSWORD`.
-- Do not persist passwords in `~/.ssh/config`, repo files, prompt templates, or logs.
-- Prefer `doctor` before making changes.
-- Treat destructive or production-impacting actions as explicit approvals.
+- `doctor` is the preferred first step because it is read-only.
+- Never store passwords in `~/.ssh/config`, repo files, prompt templates, or logs.
+- Keep password bootstrap local to the terminal session through `SSH_SERVER_PASSWORD`.
+- Treat delete, reset, overwrite, restart, install, and production-impacting commands as explicit-approval operations.
+- On HPC systems, distinguish login nodes, compute nodes, scheduler allocations, and shared storage before making changes.
 
-See [SECURITY.md](./SECURITY.md).
+See [SECURITY.md](./SECURITY.md) for the publishing and secret-handling checklist.
 
 ## Repository layout
 
@@ -298,30 +271,36 @@ See [SECURITY.md](./SECURITY.md).
 |   `-- plugin.json
 |-- .codex-plugin/
 |   `-- plugin.json
-|-- .gitignore
-|-- README.md
-|-- SECURITY.md
-|-- LICENSE
-|-- SKILL.md
+|-- .github/
+|   `-- workflows/
+|       `-- validate.yml
 |-- agents/
 |   `-- openai.yaml
+|-- references/
+|   |-- hpc-slurm-playbook.md
+|   |-- prompt-templates.md
+|   `-- windows-linux-ssh-playbook.md
+|-- scripts/
+|   |-- bootstrap_ssh_key.py
+|   |-- configure_ssh_host.ps1
+|   |-- paramiko_copy_tree.py
+|   |-- remote_run.ps1
+|   |-- server_preflight.ps1
+|   |-- sshops.py
+|   |-- sshops.ps1
+|   |-- validate-toolkit.py
+|   `-- validate-toolkit.ps1
 |-- skills/
 |   `-- ssh-server-ops/
 |       |-- SKILL.md
 |       `-- agents/
 |           `-- openai.yaml
-|-- references/
-|   |-- hpc-slurm-playbook.md
-|   |-- prompt-templates.md
-|   `-- windows-linux-ssh-playbook.md
-`-- scripts/
-    |-- bootstrap_ssh_key.py
-    |-- configure_ssh_host.ps1
-    |-- paramiko_copy_tree.py
-    |-- remote_run.ps1
-    |-- server_preflight.ps1
-    |-- sshops.ps1
-    `-- validate-toolkit.ps1
+|-- tests/
+|   `-- test_sshops_cli.py
+|-- README.md
+|-- SECURITY.md
+|-- SKILL.md
+`-- LICENSE
 ```
 
 ## Roadmap
@@ -329,5 +308,6 @@ See [SECURITY.md](./SECURITY.md).
 - first-class `scp` and `sftp` probes in `doctor`
 - explicit transport fallback reporting
 - tar-over-SSH sync helpers
-- a standalone packaged `sshops` CLI
+- richer `transfer` checksums, retries, and dry-run support
 - dedicated HPC subcommands instead of playbook-only guidance
+- packaged `sshops` CLI distribution

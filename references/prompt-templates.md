@@ -9,7 +9,7 @@ If password-backed bootstrap or transfer may be needed, set `SSH_SERVER_PASSWORD
 ## 1. Bootstrap a new server
 
 ```text
-Use $ssh-server-ops to take over a new Linux server from this Windows machine.
+Use $ssh-server-ops to take over a new Linux server from this local machine.
 
 Host alias: <alias>
 Host/IP: <host>

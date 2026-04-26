@@ -5,31 +5,46 @@ $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 
+function Join-RepoPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RelativePath
+    )
+
+    $path = $root
+    foreach ($part in ($RelativePath -split "/")) {
+        $path = Join-Path $path $part
+    }
+    return $path
+}
+
 $requiredFiles = @(
     "README.md",
     "SECURITY.md",
     "LICENSE",
     "SKILL.md",
-    ".codex-plugin\plugin.json",
-    ".claude-plugin\plugin.json",
-    ".claude-plugin\marketplace.json",
-    "agents\openai.yaml",
-    "skills\ssh-server-ops\SKILL.md",
-    "skills\ssh-server-ops\agents\openai.yaml",
-    "references\prompt-templates.md",
-    "references\windows-linux-ssh-playbook.md",
-    "references\hpc-slurm-playbook.md",
-    "scripts\sshops.ps1",
-    "scripts\remote_run.ps1",
-    "scripts\server_preflight.ps1",
-    "scripts\configure_ssh_host.ps1",
-    "scripts\bootstrap_ssh_key.py",
-    "scripts\paramiko_copy_tree.py"
+    ".codex-plugin/plugin.json",
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    "agents/openai.yaml",
+    "skills/ssh-server-ops/SKILL.md",
+    "skills/ssh-server-ops/agents/openai.yaml",
+    "references/prompt-templates.md",
+    "references/windows-linux-ssh-playbook.md",
+    "references/hpc-slurm-playbook.md",
+    "scripts/sshops.ps1",
+    "scripts/sshops.py",
+    "scripts/remote_run.ps1",
+    "scripts/server_preflight.ps1",
+    "scripts/configure_ssh_host.ps1",
+    "scripts/bootstrap_ssh_key.py",
+    "scripts/paramiko_copy_tree.py",
+    "tests/test_sshops_cli.py"
 )
 
 $missing = @()
 foreach ($relativePath in $requiredFiles) {
-    $fullPath = Join-Path $root $relativePath
+    $fullPath = Join-RepoPath -RelativePath $relativePath
     if (-not (Test-Path -LiteralPath $fullPath)) {
         $missing += $relativePath
     }
@@ -55,19 +70,23 @@ if ($parseFailures.Count -gt 0) {
 }
 
 $jsonFiles = @(
-    ".codex-plugin\plugin.json",
-    ".claude-plugin\plugin.json",
-    ".claude-plugin\marketplace.json"
+    ".codex-plugin/plugin.json",
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json"
 )
 foreach ($relativePath in $jsonFiles) {
-    $fullPath = Join-Path $root $relativePath
+    $fullPath = Join-RepoPath -RelativePath $relativePath
     $null = Get-Content -Path $fullPath -Raw | ConvertFrom-Json
 }
 
 $python = Get-Command python -ErrorAction SilentlyContinue
 $pythonChecks = @()
+$unitTestsPassed = $null
 if ($python) {
-    $pyFiles = Get-ChildItem -Path (Join-Path $root "scripts") -Filter *.py -File
+    $pyFiles = @(
+        Get-ChildItem -Path (Join-Path $root "scripts") -Filter *.py -File
+        Get-ChildItem -Path (Join-Path $root "tests") -Filter test_*.py -File
+    )
     foreach ($file in $pyFiles) {
         & $python.Source -m py_compile $file.FullName
         if ($LASTEXITCODE -ne 0) {
@@ -75,6 +94,12 @@ if ($python) {
         }
         $pythonChecks += $file.Name
     }
+
+    & $python.Source -m unittest discover -s (Join-Path $root "tests") -v
+    if ($LASTEXITCODE -ne 0) {
+        throw "Python unit tests failed"
+    }
+    $unitTestsPassed = $true
 }
 
 [ordered]@{
@@ -84,4 +109,5 @@ if ($python) {
     json_files_checked       = $jsonFiles.Count
     python_files_checked     = $pythonChecks.Count
     python_tool_available    = [bool]$python
+    python_unit_tests_passed = $unitTestsPassed
 } | ConvertTo-Json -Depth 3

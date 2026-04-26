@@ -1,4 +1,4 @@
 interface:
   display_name: "SSH Server Ops"
-  short_description: "Windows-first SSH bootstrap, diagnosis, transfer fallback, and Linux or HPC remote ops"
-  default_prompt: "Use $ssh-server-ops to diagnose or operate SSH access from this Windows machine to a Linux or HPC target with the bundled toolkit. Start with doctor, avoid asking for secrets in chat, and report the likely root cause plus the next safe action."
+  short_description: "Cross-platform SSH bootstrap, diagnosis, transfer fallback, and Linux or HPC remote ops"
+  default_prompt: "Use $ssh-server-ops to diagnose or operate SSH access from this local machine to a Linux or HPC target with the bundled toolkit. Start with doctor, avoid asking for secrets in chat, and report the likely root cause plus the next safe action."

@@ -1,0 +1,33 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  toolkit:
+    name: Toolkit validation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+          - ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate with Python
+        run: python scripts/validate-toolkit.py
+
+      - name: Validate with PowerShell Core
+        shell: pwsh
+        run: ./scripts/validate-toolkit.ps1
