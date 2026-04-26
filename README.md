@@ -1,5 +1,7 @@
 # SSH Server Ops Toolkit
 
+![SSH Server Ops Toolkit hero image](./assets/sshops-hero.png)
+
 [![Validate](https://github.com/Xiaoyun-0922/sshops/actions/workflows/validate.yml/badge.svg)](https://github.com/Xiaoyun-0922/sshops/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Platforms](https://img.shields.io/badge/local-Windows%20%7C%20macOS%20%7C%20Linux-0F6CBD.svg)](#platform-support)
